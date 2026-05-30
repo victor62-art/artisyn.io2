@@ -42,7 +42,7 @@ const Footer = () => {
                     </div>
 
                     <nav className="flex flex-wrap gap-x-8 gap-y-4 text-[#D9D9D9] font-medium">
-                        <Link href="#" className="hover:text-white transition-colors">How It Works</Link>
+                        <Link href="/how-it-works" className="hover:text-white transition-colors">How It Works</Link>
                         <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors">
                             <span>Categories</span>
                             <ChevronDown className="w-4 h-4" />
