@@ -42,14 +42,14 @@ const Footer = () => {
                     </div>
 
                     <nav className="flex flex-wrap gap-x-8 gap-y-4 text-[#D9D9D9] font-medium">
-                        <Link href="#" className="hover:text-white transition-colors">How It Works</Link>
+                        <Link href="/how-it-works" className="hover:text-white transition-colors">How It Works</Link>
                         <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors">
                             <span>Categories</span>
                             <ChevronDown className="w-4 h-4" />
                         </div>
-                        <Link href="#" className="hover:text-white transition-colors">For Artisans</Link>
-                        <Link href="#" className="hover:text-white transition-colors">Contact</Link>
-                        <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
+                        <Link href="/for-artisans" className="hover:text-white transition-colors">For Artisans</Link>
+                        <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+                        <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
                     </nav>
                 </div>
 
@@ -57,8 +57,8 @@ const Footer = () => {
                 <div className="mt-4 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-[#6B6878]">
                     <p>© 2026 Artisyn. All rights reserved.</p>
                     <div className="flex gap-8">
-                        <Link href="#" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
-                        <Link href="#" className="hover:text-slate-300 transition-colors">Terms & Conditions</Link>
+                        <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+                        <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms & Conditions</Link>
                     </div>
                 </div>
             </div>
