@@ -10,8 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { ClientFormData } from "@/app/(onboarding)/artisan/profile-setup/page"
 import { SlideInFromBottom } from "../SlideInFromBottom"
+
+type ClientFormData = {
+  fullName: string
+  email: string
+  state: string
+  city: string
+  referralSource: string
+}
 
 interface ClientProfileFormProps {
   data: ClientFormData

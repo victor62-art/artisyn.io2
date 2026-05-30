@@ -86,7 +86,7 @@ export default function ConnectWalletPage() {
           <div className="bg-white border border-blue-200 rounded-lg p-4">
             <div className="flex items-start gap-3 text-xs text-slate-600">
               <div className="flex-1 space-y-1">
-                <p>• We'll never access your funds</p>
+                <p>• We&apos;ll never access your funds</p>
                 <p>• Used only for account identity and platform actions</p>
               </div>
             </div>

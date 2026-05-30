@@ -21,7 +21,7 @@ export interface ArtisanFormData {
   bio: string
 }
 
-export default function page() {
+export default function ProfileSetupPage() {
   const [accountType, setAccountType] = useState<AccountType>(null)
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("account-type")
   const [isHydrated, setIsHydrated] = useState(false)
@@ -43,15 +43,16 @@ export default function page() {
       if (savedState) {
         try {
           const parsed = JSON.parse(savedState)
-          
+
           if (parsed.currentStep !== "success") {
-            setCurrentStep(parsed.currentStep || "account-type")
-            setAccountType(parsed.accountType || null)
-            setArtisanData({
-              ...artisanData,
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setCurrentStep(() => parsed.currentStep || "account-type")
+            setAccountType(() => parsed.accountType || null)
+            setArtisanData((prev) => ({
+              ...prev,
               ...parsed.artisanData,
               profileImage: null,
-            })
+            }))
           }
         } catch (error) {
           console.error("Failed to parse saved state:", error)
@@ -167,7 +168,13 @@ export default function page() {
       {/* Form container - responsive width */}
       <div className="form_div flex flex-col justify-top items-start w-full md:w-auto mx-auto px-[20px] sm:px-[32px] md:px-[40px] py-[40px] sm:py-[56px] md:py-[7vh] overflow-y-auto h-[100vh] max-h-[100vh]">
         <div className="mb-[32px] sm:mb-[40px] md:mb-[4vh]">
-          <img src="/images/artisan_logo.png" alt="" className="h-[32px] sm:h-[40px] w-auto" />
+          <Image
+            src="/images/artisan_logo.png"
+            alt="Artisyn logo"
+            width={160}
+            height={40}
+            className="h-[32px] sm:h-[40px] w-auto"
+          />
         </div>
 
         {(accountType === "artisan" && (currentStep === "artisan-step1" || currentStep === "artisan-step2")) && (

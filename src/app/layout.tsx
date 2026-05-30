@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { WalletProvider } from "../context/WalletProvider";
-
-const inter = Inter({ subsets: ["latin"] });
 
 const satoshi = localFont({
   src: [

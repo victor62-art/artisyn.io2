@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { Horizon, Networks, Asset, TransactionBuilder, Operation, Memo, BASE_FEE } from '@stellar/stellar-sdk';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { Horizon, Networks } from '@stellar/stellar-sdk';
 import { ISupportedWallet } from "@creit.tech/stellar-wallets-kit";
 import { kit as getKitInstance } from '@/lib/stellar-wallets-kit';
 
@@ -71,7 +71,7 @@ export function WalletProvider({
     try {
       const account = await server.accounts().accountId(address).call();
       setBalances(account.balances);
-    } catch (e) {
+    } catch {
       setBalances([]);
     }
   }, [server]);
@@ -83,8 +83,12 @@ export function WalletProvider({
       if (walletId) {
         // Direct Connection (No Modal)
         // Find the module name for the UI state
-        const modules = (kit as any).options?.modules || [];
-        const target = modules.find((m: any) => m.id === walletId);
+        const modules = (
+          (kit as unknown as {
+            options?: { modules?: Array<{ id: string; name?: string }> }
+          }).options?.modules ?? []
+        );
+        const target = modules.find((m) => m.id === walletId);
         await handleWalletSelection(walletId, target?.name || walletId);
       } else {
         // Fallback to Modal
@@ -95,14 +99,21 @@ export function WalletProvider({
           },
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorData = error as {
+        message?: string;
+        code?: string;
+        name?: string;
+        stack?: string;
+      };
+
       // Improve visibility into what the SDK is actually throwing
       console.error("Connection failed raw value:", error);
       console.error("Connection failed details:", {
-        message: error?.message,
-        code: error?.code,
-        name: error?.name,
-        stack: error?.stack,
+        message: errorData.message,
+        code: errorData.code,
+        name: errorData.name,
+        stack: errorData.stack,
       });
       try {
         console.error("Connection failed JSON:", JSON.stringify(error));
@@ -113,7 +124,7 @@ export function WalletProvider({
       // Always rethrow an Error instance so callers get a consistent shape
       throw error instanceof Error
         ? error
-        : new Error(error?.message || "Wallet connection failed");
+        : new Error(errorData?.message || "Wallet connection failed");
     }
   }, [handleWalletSelection]);
 
@@ -131,7 +142,7 @@ export function WalletProvider({
     try {
       const account = await server.accounts().accountId(publicKey).call();
       setBalances(account.balances);
-    } catch (e) {
+    } catch {
       setBalances([]);
     }
   }, [publicKey, server]);

@@ -72,12 +72,13 @@ export function ArtisanProfileStep2({ data, onComplete }: ArtisanProfileStep2Pro
               }`}
             >
               {previewUrl ? (
-                <img
-                  src={previewUrl || "/placeholder.svg"}
-                  alt="Profile preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={previewUrl || "/placeholder.svg"}
+                alt="Profile preview"
+                className="w-full h-full object-cover"
+              />
+            ) : (
                 <Camera className="w-[24px] h-[20px] sm:w-[26px] sm:h-[21px] text-[#212121]" />
               )}
             </button>

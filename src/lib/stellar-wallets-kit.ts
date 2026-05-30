@@ -4,15 +4,16 @@ import {
   FreighterModule,
   AlbedoModule,
   LobstrModule,
-  xBullModule,
-  HanaModule,
   WalletNetwork,
-  ISupportedWallet,
 } from "@creit.tech/stellar-wallets-kit";
 
 // Placeholder for injected wallets
-// @ts-ignore
-const INJECTED_WALLETS: string[] = ["freighter","albedo","lobstr"];
+const INJECTED_WALLETS: string[] = ["freighter", "albedo", "lobstr"];
+
+type WalletModule =
+  | FreighterModule
+  | AlbedoModule
+  | LobstrModule
 
 let kitInstance: StellarWalletsKit | null = null;
 
@@ -24,14 +25,12 @@ export const getKit = (): StellarWalletsKit => {
   if (!kitInstance) {
     // Dynamic module loading based on INJECTED_WALLETS
     // or fallback to defaults if placeholder not replaced
-    const modules: any[] = [];
+    const modules: WalletModule[] = [];
     const walletList = Array.isArray(INJECTED_WALLETS) ? INJECTED_WALLETS : ['freighter', 'albedo', 'lobstr']; // Default fallback
 
     if (walletList.includes('freighter')) modules.push(new FreighterModule());
     if (walletList.includes('albedo')) modules.push(new AlbedoModule());
     if (walletList.includes('lobstr')) modules.push(new LobstrModule());
-    if (walletList.includes('xbull')) modules.push(new xBullModule());
-    if (walletList.includes('hana')) modules.push(new HanaModule());
 
     kitInstance = new StellarWalletsKit({
       network:  WalletNetwork.TESTNET,

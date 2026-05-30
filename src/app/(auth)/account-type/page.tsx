@@ -1,8 +1,8 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-type Props = {};
 const accountTypeContent = [
   {
     icon: "/account-type/user-circle.png",
@@ -18,7 +18,7 @@ const accountTypeContent = [
   },
 ];
 
-const AccountType = (props: Props) => {
+const AccountType = () => {
   const [selectedAccountType, setSelectedAccountType] = useState<string | null>(
     null,
   );
@@ -29,10 +29,12 @@ const AccountType = (props: Props) => {
         <div className="flex flex-col justify-normal items-start w-full lg:w-1/2 px-6 lg:pl-56 lg:px-0 h-auto lg:h-screen py-8">
           
           {/* LOGO */}
-          <img
+          <Image
             src="/account-type/artisyn-logo.svg"
             alt="Artisyn Logo"
-            className="w-24 h-24 lg:w-32 lg:h-32 mb-6" // Slightly smaller logo on mobile
+            width={128}
+            height={128}
+            className="w-24 h-24 lg:w-32 lg:h-32 mb-6"
           />
           
           <div className="w-full">
@@ -54,7 +56,13 @@ const AccountType = (props: Props) => {
                   onClick={() => setSelectedAccountType(item.title)}
                 >
                   <div className="flex justify-normal items-center gap-2">
-                    <img src={item.icon} className="size-6" />
+                    <Image
+                      src={item.icon}
+                      alt={`${item.title} icon`}
+                      width={28}
+                      height={28}
+                      className="h-6 w-6"
+                    />
                     <h3 className="text-black text-xl font-medium">
                       {item.title}
                     </h3>
@@ -72,11 +80,12 @@ const AccountType = (props: Props) => {
            <Link href="/setup-profile"> Continue as {selectedAccountType === "I'm an artisian " ? "Artisan" : "Client"}</Link>
           </button>
         </div>
-        <div className="hidden lg:block w-1/2 h-screen sticky top-0">
-          <img
-            src={"/account-type/man-working-with-wood.png"}
-            className="w-full h-full object-cover"
+        <div className="hidden lg:block w-1/2 h-screen sticky top-0 relative">
+          <Image
+            src="/account-type/man-working-with-wood.png"
             alt="Man working"
+            fill
+            className="object-cover"
           />
         </div>
 
