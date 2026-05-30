@@ -7,39 +7,43 @@ import {
   xBullModule,
   HanaModule,
   WalletNetwork,
-  ISupportedWallet,
+  ModuleInterface,
 } from "@creit.tech/stellar-wallets-kit";
 
 // Placeholder for injected wallets
-// @ts-ignore
-const INJECTED_WALLETS: string[] = ["freighter","albedo","lobstr"];
+const INJECTED_WALLETS: string[] = ["freighter", "albedo", "lobstr"];
 
 let kitInstance: StellarWalletsKit | null = null;
 
 export const getKit = (): StellarWalletsKit => {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return {} as StellarWalletsKit;
   }
-  
+
   if (!kitInstance) {
     // Dynamic module loading based on INJECTED_WALLETS
     // or fallback to defaults if placeholder not replaced
-    const modules: any[] = [];
-    const walletList = Array.isArray(INJECTED_WALLETS) ? INJECTED_WALLETS : ['freighter', 'albedo', 'lobstr']; // Default fallback
+    const modules: ModuleInterface[] = [];
+    const walletList = Array.isArray(INJECTED_WALLETS)
+      ? INJECTED_WALLETS
+      : ["freighter", "albedo", "lobstr"]; // Default fallback
 
-    if (walletList.includes('freighter')) modules.push(new FreighterModule());
-    if (walletList.includes('albedo')) modules.push(new AlbedoModule());
-    if (walletList.includes('lobstr')) modules.push(new LobstrModule());
-    if (walletList.includes('xbull')) modules.push(new xBullModule());
-    if (walletList.includes('hana')) modules.push(new HanaModule());
+    if (walletList.includes("freighter")) modules.push(new FreighterModule());
+    if (walletList.includes("albedo")) modules.push(new AlbedoModule());
+    if (walletList.includes("lobstr")) modules.push(new LobstrModule());
+    if (walletList.includes("xbull")) modules.push(new xBullModule());
+    if (walletList.includes("hana")) modules.push(new HanaModule());
 
     kitInstance = new StellarWalletsKit({
-      network:  WalletNetwork.TESTNET,
+      network: WalletNetwork.TESTNET,
       selectedWalletId: FREIGHTER_ID,
-      modules: modules.length > 0 ? modules : [new FreighterModule(), new AlbedoModule(), new LobstrModule()],
+      modules:
+        modules.length > 0
+          ? modules
+          : [new FreighterModule(), new AlbedoModule(), new LobstrModule()],
     });
   }
-  
+
   return kitInstance;
 };
 

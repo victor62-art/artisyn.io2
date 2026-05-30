@@ -26,11 +26,14 @@ export default function TestimonialSlider() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      handleNext();
+      setDirection(1);
+      setCurrentIndex((prev) =>
+        prev === testimonials.length - 1 ? 0 : prev + 1,
+      );
     }, 5000); // Auto-advance every 5 seconds
 
     return () => clearInterval(interval);
-  }, [currentIndex]);
+  }, []);
 
   const handlePrev = () => {
     setDirection(-1);
