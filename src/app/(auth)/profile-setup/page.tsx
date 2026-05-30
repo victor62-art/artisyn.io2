@@ -26,6 +26,7 @@ export interface ArtisanFormData {
   bio: string;
 }
 
+
 function getInitialState() {
   const defaultState = {
     accountType: null as AccountType,
@@ -42,10 +43,27 @@ function getInitialState() {
     },
   };
 
+export default function ProfileSetupPage() {
+  const [accountType, setAccountType] = useState<AccountType>(null)
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("account-type")
+  const [isHydrated, setIsHydrated] = useState(false)
+  const [artisanData, setArtisanData] = useState<ArtisanFormData>({
+    fullName: "",
+    email: "",
+    skillCategory: "",
+    state: "",
+    city: "",
+    yearsOfExperience: "",
+    profileImage: null,
+    bio: "",
+  })
+
+
   if (typeof window !== "undefined") {
     try {
       const savedState = localStorage.getItem("artisan-onboarding-state");
       if (savedState) {
+
         const parsed = JSON.parse(savedState);
         if (parsed.currentStep !== "success") {
           return {
@@ -57,6 +75,24 @@ function getInitialState() {
               profileImage: null,
             },
           };
+
+        try {
+          const parsed = JSON.parse(savedState)
+
+          if (parsed.currentStep !== "success") {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setCurrentStep(() => parsed.currentStep || "account-type")
+            setAccountType(() => parsed.accountType || null)
+            setArtisanData((prev) => ({
+              ...prev,
+              ...parsed.artisanData,
+              profileImage: null,
+            }))
+          }
+        } catch (error) {
+          console.error("Failed to parse saved state:", error)
+          localStorage.removeItem("artisan-onboarding-state")
+
         }
       }
     } catch (error) {
@@ -189,9 +225,17 @@ export default function Page() {
       {/* Form container - responsive width */}
       <div className="form_div flex flex-col justify-top items-start w-full md:w-auto mx-auto px-[20px] sm:px-[32px] md:px-[40px] py-[40px] sm:py-[56px] md:py-[7vh] overflow-y-auto h-[100vh] max-h-[100vh]">
         <div className="mb-[32px] sm:mb-[40px] md:mb-[4vh]">
+
           <img
             src="/images/artisan_logo.png"
             alt=""
+
+          <Image
+            src="/images/artisan_logo.png"
+            alt="Artisyn logo"
+            width={160}
+            height={40}
+
             className="h-[32px] sm:h-[40px] w-auto"
           />
         </div>

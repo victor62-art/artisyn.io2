@@ -302,10 +302,12 @@ export default function AccountCompletionPage() {
         
         <div className="hidden lg:flex items-center justify-center bg-gray-100">
           <div className="relative w-full h-full">
-            <img
+            <Image
               src="/image1.jpg"
               alt="Artisan at work"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              priority
             />
             
             <div className="absolute inset-0 bg-linear-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-10"></div>

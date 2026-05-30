@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 
 const testimonials = [
@@ -24,6 +24,7 @@ export default function TestimonialSlider() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
 
+
   useEffect(() => {
     const interval = setInterval(() => {
       setDirection(1);
@@ -35,6 +36,7 @@ export default function TestimonialSlider() {
     return () => clearInterval(interval);
   }, []);
 
+
   const handlePrev = () => {
     setDirection(-1);
     setCurrentIndex((prev) =>
@@ -42,12 +44,20 @@ export default function TestimonialSlider() {
     );
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setDirection(1);
     setCurrentIndex((prev) =>
       prev === testimonials.length - 1 ? 0 : prev + 1,
     );
-  };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      handleNext();
+    }, 5000); // Auto-advance every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [handleNext]);
 
   const getVisibleTestimonials = () => {
     const prevIndex =
