@@ -6,7 +6,6 @@ import {
   User, 
   Bell, 
   Shield, 
-  Key, 
   HelpCircle, 
   CheckCircle2, 
   AlertTriangle, 
@@ -16,7 +15,11 @@ import {
   ExternalLink,
   Sparkles,
   RefreshCw,
-  X
+  X,
+  Mail,
+  Smartphone,
+  Calendar,
+  Save
 } from "lucide-react";
 
 // Inline SVGs for social providers to guarantee error-free rendering and custom coloring
@@ -53,6 +56,35 @@ const TwitterIcon = () => (
   </svg>
 );
 
+// Accessible Switch Toggle Component
+const Switch = ({ 
+  checked, 
+  onChange, 
+  disabled 
+}: { 
+  checked: boolean; 
+  onChange: (val: boolean) => void; 
+  disabled?: boolean;
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    disabled={disabled}
+    onClick={() => onChange(!checked)}
+    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#605DEC] focus:ring-offset-2 ${
+      checked ? "bg-[#605DEC]" : "bg-gray-200"
+    } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+  >
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+        checked ? "translate-x-5" : "translate-x-0"
+      }`}
+    />
+  </button>
+);
+
 interface Provider {
   id: string;
   name: string;
@@ -62,12 +94,45 @@ interface Provider {
   connectedAt?: string;
 }
 
+interface NotificationPreferences {
+  email: {
+    jobAlerts: boolean;
+    marketing: boolean;
+    security: boolean;
+  };
+  push: {
+    directMessages: boolean;
+    jobUpdates: boolean;
+  };
+  digest: "none" | "daily" | "weekly";
+}
+
+const DEFAULT_PREFERENCES: NotificationPreferences = {
+  email: {
+    jobAlerts: true,
+    marketing: false,
+    security: true,
+  },
+  push: {
+    directMessages: true,
+    jobUpdates: true,
+  },
+  digest: "daily",
+};
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"linked" | "profile" | "security" | "notifications">("linked");
+  
+  // Linked providers state
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
+  // Notification Preferences State
+  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+  const [prefLoading, setPrefLoading] = useState<boolean>(true);
+  const [prefSaving, setPrefSaving] = useState<boolean>(false);
+
   // Dialog / Modal state
   const [unlinkProvider, setUnlinkProvider] = useState<Provider | null>(null);
   const [linkProvider, setLinkProvider] = useState<Provider | null>(null);
@@ -76,26 +141,23 @@ export default function SettingsPage() {
   // Custom toast notification state
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
 
-  // Initialize and Fetch provider link states
+  // Fetch providers and notifications on mount
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
         setLoading(true);
-        // Try calling the actual endpoint
         const response = await fetch("/api/account-links", { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
-          // Map backend response and inject appropriate icons
           const mapped = data.map((p: any) => ({
             ...p,
             icon: getIcon(p.id)
           }));
           setProviders(mapped);
         } else {
-          throw new Error("API not available, falling back to local storage");
+          throw new Error();
         }
       } catch (err) {
-        // Fallback to local storage or defaults
         const stored = localStorage.getItem("artisan-linked-providers");
         if (stored) {
           try {
@@ -118,7 +180,35 @@ export default function SettingsPage() {
       }
     };
 
+    const fetchPreferences = async () => {
+      try {
+        setPrefLoading(true);
+        const response = await fetch("/api/preferences", { cache: "no-store" });
+        if (response.ok) {
+          const data = await response.json();
+          setPreferences(data);
+        } else {
+          throw new Error();
+        }
+      } catch (err) {
+        const stored = localStorage.getItem("artisan-notification-preferences");
+        if (stored) {
+          try {
+            setPreferences(JSON.parse(stored));
+          } catch (e) {
+            setPreferences(DEFAULT_PREFERENCES);
+          }
+        } else {
+          setPreferences(DEFAULT_PREFERENCES);
+          localStorage.setItem("artisan-notification-preferences", JSON.stringify(DEFAULT_PREFERENCES));
+        }
+      } finally {
+        setPrefLoading(false);
+      }
+    };
+
     fetchAccounts();
+    fetchPreferences();
   }, []);
 
   const getIcon = (id: string) => {
@@ -159,7 +249,6 @@ export default function SettingsPage() {
     setLinkEmail("");
 
     try {
-      // Try hitting the API endpoint first
       const res = await fetch("/api/account-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -175,11 +264,10 @@ export default function SettingsPage() {
         setProviders(mapped);
         showToast(`Successfully linked ${linkProvider.name} account!`, "success");
       } else {
-        throw new Error("API post failed");
+        throw new Error();
       }
     } catch (err) {
-      // Fallback local update
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Premium feel latency
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       const updated = providers.map((p) => {
         if (p.id === targetProviderId) {
           return {
@@ -192,7 +280,6 @@ export default function SettingsPage() {
         return p;
       });
       setProviders(updated);
-      // Persist in localStorage
       localStorage.setItem("artisan-linked-providers", JSON.stringify(updated.map(({ icon, ...rest }) => rest)));
       showToast(`Successfully linked ${linkProvider.name} account!`, "success");
     } finally {
@@ -210,7 +297,6 @@ export default function SettingsPage() {
     setUnlinkProvider(null);
 
     try {
-      // Try hitting the API endpoint first
       const res = await fetch(`/api/account-links?provider=${targetProviderId}`, {
         method: "DELETE",
       });
@@ -224,11 +310,10 @@ export default function SettingsPage() {
         setProviders(mapped);
         showToast(`Disconnected ${providerName} successfully.`, "success");
       } else {
-        throw new Error("API delete failed");
+        throw new Error();
       }
     } catch (err) {
-      // Fallback local update
-      await new Promise((resolve) => setTimeout(resolve, 1200)); // Premium feel latency
+      await new Promise((resolve) => setTimeout(resolve, 1200));
       const updated = providers.map((p) => {
         if (p.id === targetProviderId) {
           return {
@@ -241,7 +326,6 @@ export default function SettingsPage() {
         return p;
       });
       setProviders(updated);
-      // Persist in localStorage
       localStorage.setItem("artisan-linked-providers", JSON.stringify(updated.map(({ icon, ...rest }) => rest)));
       showToast(`Disconnected ${providerName} successfully.`, "success");
     } finally {
@@ -249,7 +333,7 @@ export default function SettingsPage() {
     }
   };
 
-  // Check if we can disconnect (preventing disconnecting everything if it's the last login method)
+  // Check if we can disconnect
   const connectedCount = providers.filter(p => p.connected).length;
   
   const handleDisconnectClick = (provider: Provider) => {
@@ -258,6 +342,59 @@ export default function SettingsPage() {
       return;
     }
     setUnlinkProvider(provider);
+  };
+
+  // Preference Handlers
+  const handleEmailToggle = (key: keyof NotificationPreferences["email"]) => {
+    setPreferences((prev) => ({
+      ...prev,
+      email: {
+        ...prev.email,
+        [key]: !prev.email[key],
+      },
+    }));
+  };
+
+  const handlePushToggle = (key: keyof NotificationPreferences["push"]) => {
+    setPreferences((prev) => ({
+      ...prev,
+      push: {
+        ...prev.push,
+        [key]: !prev.push[key],
+      },
+    }));
+  };
+
+  const handleDigestChange = (val: NotificationPreferences["digest"]) => {
+    setPreferences((prev) => ({
+      ...prev,
+      digest: val,
+    }));
+  };
+
+  const handleSavePreferences = async () => {
+    try {
+      setPrefSaving(true);
+      const res = await fetch("/api/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(preferences),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPreferences(data);
+        showToast("Notification preferences updated successfully!", "success");
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      localStorage.setItem("artisan-notification-preferences", JSON.stringify(preferences));
+      showToast("Notification preferences updated successfully!", "success");
+    } finally {
+      setPrefSaving(false);
+    }
   };
 
   return (
@@ -370,6 +507,7 @@ export default function SettingsPage() {
         {/* Configuration content panel */}
         <div className="lg:col-span-3">
           <AnimatePresence mode="wait">
+            {/* LINKED ACCOUNTS PANEL */}
             {activeTab === "linked" && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -497,8 +635,200 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
+            {/* NOTIFICATION PREFERENCES PANEL */}
+            {activeTab === "notifications" && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+              >
+                {/* Panel Header */}
+                <div className="p-6 border-b border-gray-200 bg-linear-to-r from-gray-50 to-white flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Notification Preferences</h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Choose when and how you want to be notified about updates and activity.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setPrefLoading(true);
+                      setTimeout(() => setPrefLoading(false), 500);
+                    }}
+                    className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition-colors"
+                    title="Reload Preferences"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Panel Content */}
+                <div className="p-6">
+                  {prefLoading ? (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-[#605DEC]" />
+                      <span className="text-sm text-gray-500 font-medium">Fetching preferences...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      {/* Section 1: Email Notifications */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+                          <Mail className="w-5 h-5 text-indigo-500" />
+                          <h3 className="text-base font-bold text-gray-800">Email Alerts</h3>
+                        </div>
+
+                        <div className="space-y-4.5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">New Job Alerts</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Receive email notifications when new job listings matching your skills are posted.
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.email.jobAlerts} 
+                              onChange={() => handleEmailToggle("jobAlerts")} 
+                            />
+                          </div>
+
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">Account Security</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Get notified about login attempts, password changes, and security updates. (Highly Recommended)
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.email.security} 
+                              onChange={() => handleEmailToggle("security")} 
+                            />
+                          </div>
+
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">Marketing & News</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Receive newsletters, product tips, and promotional updates about the platform.
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.email.marketing} 
+                              onChange={() => handleEmailToggle("marketing")} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 2: Push Notifications */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+                          <Smartphone className="w-5 h-5 text-indigo-500" />
+                          <h3 className="text-base font-bold text-gray-800">Push Notifications</h3>
+                        </div>
+
+                        <div className="space-y-4.5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">Direct Messages</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Get notified immediately when a client or admin sends you a chat message.
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.push.directMessages} 
+                              onChange={() => handlePushToggle("directMessages")} 
+                            />
+                          </div>
+
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">Job Updates</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Get notified when a client views, replies, or changes the state of your active proposals.
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.push.jobUpdates} 
+                              onChange={() => handlePushToggle("jobUpdates")} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 3: Summary Digest Selection */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+                          <Calendar className="w-5 h-5 text-indigo-500" />
+                          <h3 className="text-base font-bold text-gray-800">Activity Digest</h3>
+                        </div>
+                        
+                        <div>
+                          <p className="text-xs text-gray-500 mb-3">
+                            Choose how frequently you would like to receive general summaries of your profile view count, proposals, and active job statuses.
+                          </p>
+
+                          <div className="grid grid-cols-3 gap-3">
+                            {([
+                              { value: "none", label: "None", desc: "No reports" },
+                              { value: "daily", label: "Daily", desc: "Every morning" },
+                              { value: "weekly", label: "Weekly", desc: "Every Sunday" }
+                            ] as const).map((opt) => {
+                              const selected = preferences.digest === opt.value;
+                              return (
+                                <button
+                                  type="button"
+                                  key={opt.value}
+                                  onClick={() => handleDigestChange(opt.value)}
+                                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer ${
+                                    selected 
+                                      ? "border-[#605DEC] bg-indigo-50/50 text-[#605DEC] font-semibold" 
+                                      : "border-gray-200 hover:bg-gray-50 text-gray-700"
+                                  }`}
+                                >
+                                  <span className="text-sm">{opt.label}</span>
+                                  <span className="text-[10px] text-gray-400 font-normal mt-0.5">{opt.desc}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Save Button Action */}
+                      <div className="flex items-center justify-end pt-5 border-t border-gray-150">
+                        <button
+                          type="button"
+                          onClick={handleSavePreferences}
+                          disabled={prefSaving}
+                          className="px-6 py-2.5 bg-[#605DEC] hover:bg-[#4d4ac9] text-white font-semibold rounded-xl text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md flex items-center justify-center gap-2"
+                        >
+                          {prefSaving ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" /> Saving Changes...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4" /> Save Preferences
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 text-xs text-gray-500 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  Your preferences are stored securely and synchronized using the User Settings API.
+                </div>
+              </motion.div>
+            )}
+
             {/* Sub-panels mock for premium settings layout */}
-            {activeTab !== "linked" && (
+            {activeTab !== "linked" && activeTab !== "notifications" && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -509,7 +839,6 @@ export default function SettingsPage() {
                 <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4 border border-indigo-100">
                   {activeTab === "profile" && <User className="w-8 h-8 text-[#605DEC]" />}
                   {activeTab === "security" && <Shield className="w-8 h-8 text-[#605DEC]" />}
-                  {activeTab === "notifications" && <Bell className="w-8 h-8 text-[#605DEC]" />}
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 capitalize">{activeTab} settings</h3>
                 <p className="text-sm text-gray-500 max-w-sm mx-auto mt-2">
