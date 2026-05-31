@@ -1,6 +1,7 @@
 import { ProfileIdentitySection } from "@/components/artisan/profile-identity-section"
 import { ProfileSkillsSection } from "@/components/artisan/profile-skills-section"
 import { ProfileLocationSection } from "@/components/artisan/profile-location-section"
+import { ProfileAvailabilitySection } from "@/components/artisan/profile-availability-section"
 
 // Mock data — replace with real data fetching once API is available
 const mockProfile = {
@@ -35,6 +36,7 @@ export default function ProfilePage() {
         <ProfileIdentitySection initialData={mockProfile.identity} />
         <ProfileSkillsSection initialData={mockProfile.skills} />
         <ProfileLocationSection initialData={mockProfile.location} />
+        <ProfileAvailabilitySection />
       </div>
     </div>
   )
