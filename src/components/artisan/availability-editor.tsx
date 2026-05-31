@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, Clock, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -68,31 +68,26 @@ function loadFromStorage(): AvailabilitySchedule {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SCHEDULE;
     const parsed = JSON.parse(raw) as AvailabilitySchedule;
-    // Ensure all day keys exist (guard against stale/partial saves)
-    const complete = { ...DEFAULT_SCHEDULE, ...parsed };
-    return complete;
+    return { ...DEFAULT_SCHEDULE, ...parsed };
   } catch {
     return DEFAULT_SCHEDULE;
   }
 }
 
+function hasSavedSchedule(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(STORAGE_KEY) !== null;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AvailabilityEditor() {
-  const [schedule, setSchedule] = useState<AvailabilitySchedule>(DEFAULT_SCHEDULE);
+  // Lazy initialisers run once on mount — no useEffect needed,
+  // which avoids the react-hooks/set-state-in-effect lint error.
+  const [schedule, setSchedule] = useState<AvailabilitySchedule>(loadFromStorage);
   const [errors, setErrors] = useState<Partial<Record<DayKey, string>>>({});
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState<boolean>(hasSavedSchedule);
   const [saveSuccess, setSaveSuccess] = useState(false);
-
-  // Rehydrate from localStorage on mount
-  useEffect(() => {
-    const stored = loadFromStorage();
-    setSchedule(stored);
-    // If there was a previously saved schedule, show the summary immediately
-    if (localStorage.getItem(STORAGE_KEY)) {
-      setSaved(true);
-    }
-  }, []);
 
   // ── Handlers ──
 
@@ -101,7 +96,6 @@ export default function AvailabilityEditor() {
       ...prev,
       [day]: { ...prev[day], enabled: !prev[day].enabled },
     }));
-    // Clear error for this day when toggled off
     setErrors((prev) => {
       const next = { ...prev };
       delete next[day];
@@ -114,7 +108,6 @@ export default function AvailabilityEditor() {
       ...prev,
       [day]: { ...prev[day], [field]: value },
     }));
-    // Clear error for this day when user edits a time
     setErrors((prev) => {
       const next = { ...prev };
       delete next[day];
