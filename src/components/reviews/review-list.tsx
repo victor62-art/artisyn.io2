@@ -13,8 +13,6 @@ export interface Review {
 	comment: string;
 	createdAt: string | Date;
 	reviewerName: string;
-	artisanName?: string;
-	artisanId?: string;
 }
 
 export interface ReviewListProps {
@@ -81,14 +79,6 @@ function ReviewCard({ review }: { review: Review }) {
 						</div>
 						<div className="text-xs text-slate-500">
 							{formatDate(review.createdAt)}
-							{review.artisanName ? (
-								<>
-									<span aria-hidden="true"> • </span>
-									<span className="text-slate-600">
-										for <span className="font-medium">{review.artisanName}</span>
-									</span>
-								</>
-							) : null}
 						</div>
 					</div>
 				</div>
