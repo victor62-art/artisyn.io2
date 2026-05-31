@@ -41,12 +41,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        className={`${satoshi.variable} antialiased`}
-      >
-        <WalletProvider>
-        {children}
-        </WalletProvider>
+      <body className={`${satoshi.variable} antialiased`}>
+        <WalletProvider>{children}</WalletProvider>
       </body>
     </html>
   );

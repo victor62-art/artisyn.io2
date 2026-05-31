@@ -1,67 +1,85 @@
-"use client"
+"use client";
 import { AccountTypeSelection } from "@/components/artisan/account-type-selection";
-import { useEffect, useState } from "react";
-import Image from "next/image"
+import { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArtisanProfileStep1 } from "@/components/artisan/artisan-profile-step1";
 import { ArtisanProfileStep2 } from "@/components/artisan/artisan-profile-step2";
 import { OnboardingSuccess } from "@/components/artisan/onboarding-success";
 import { ProgressIndicator } from "@/components/progress-indicator";
 
-export type AccountType = "artisan" | "client" | null
-export type OnboardingStep = "account-type" | "artisan-step1" | "artisan-step2" | "client-form" | "success"
+export type AccountType = "artisan" | "client" | null;
+export type OnboardingStep =
+  | "account-type"
+  | "artisan-step1"
+  | "artisan-step2"
+  | "client-form"
+  | "success";
 export interface ArtisanFormData {
-  fullName: string
-  email: string
-  skillCategory: string
-  state: string
-  city: string
-  yearsOfExperience: string
-  profileImage: File | null
-  bio: string
+  fullName: string;
+  email: string;
+  skillCategory: string;
+  state: string;
+  city: string;
+  yearsOfExperience: string;
+  profileImage: File | null;
+  bio: string;
 }
 
-export default function ProfileSetupPage() {
-  const [accountType, setAccountType] = useState<AccountType>(null)
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("account-type")
-  const [isHydrated, setIsHydrated] = useState(false)
-  const [artisanData, setArtisanData] = useState<ArtisanFormData>({
-    fullName: "",
-    email: "",
-    skillCategory: "",
-    state: "",
-    city: "",
-    yearsOfExperience: "",
-    profileImage: null,
-    bio: "",
-  })
+function getInitialState() {
+  const defaultState = {
+    accountType: null as AccountType,
+    currentStep: "account-type" as OnboardingStep,
+    artisanData: {
+      fullName: "",
+      email: "",
+      skillCategory: "",
+      state: "",
+      city: "",
+      yearsOfExperience: "",
+      profileImage: null as File | null,
+      bio: "",
+    },
+  };
 
-  // Load saved state on mount (runs once)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedState = localStorage.getItem("artisan-onboarding-state")
+  if (typeof window !== "undefined") {
+    try {
+      const savedState = localStorage.getItem("artisan-onboarding-state");
       if (savedState) {
-        try {
-          const parsed = JSON.parse(savedState)
-
-          if (parsed.currentStep !== "success") {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setCurrentStep(() => parsed.currentStep || "account-type")
-            setAccountType(() => parsed.accountType || null)
-            setArtisanData((prev) => ({
-              ...prev,
+        const parsed = JSON.parse(savedState);
+        if (parsed.currentStep !== "success") {
+          return {
+            accountType: parsed.accountType || null,
+            currentStep: parsed.currentStep || "account-type",
+            artisanData: {
+              ...defaultState.artisanData,
               ...parsed.artisanData,
               profileImage: null,
-            }))
-          }
-        } catch (error) {
-          console.error("Failed to parse saved state:", error)
-          localStorage.removeItem("artisan-onboarding-state")
+            },
+          };
         }
       }
-      setIsHydrated(true)
+    } catch (error) {
+      console.error("Failed to parse saved state:", error);
+      localStorage.removeItem("artisan-onboarding-state");
     }
-  }, [])
+  }
+
+  return defaultState;
+}
+
+export default function Page() {
+  const initialState = getInitialState();
+  const [accountType, setAccountType] = useState<AccountType>(
+    initialState.accountType,
+  );
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>(
+    initialState.currentStep,
+  );
+  const [isHydrated] = useState(true);
+  const [artisanData, setArtisanData] = useState<ArtisanFormData>(
+    initialState.artisanData,
+  );
 
   // Save state whenever it changes
   useEffect(() => {
@@ -74,93 +92,96 @@ export default function ProfileSetupPage() {
             ...artisanData,
             profileImage: null,
           },
-        }
-        localStorage.setItem("artisan-onboarding-state", JSON.stringify(stateToSave))
+        };
+        localStorage.setItem(
+          "artisan-onboarding-state",
+          JSON.stringify(stateToSave),
+        );
       }
     }
-  }, [currentStep, accountType, artisanData, isHydrated])
-  
+  }, [currentStep, accountType, artisanData, isHydrated]);
+
   const handleAccountTypeSelect = (type: AccountType) => {
-    setAccountType(type)
-  }
-  
+    setAccountType(type);
+  };
+
   const handleAccountTypeContinue = () => {
     if (accountType === "artisan") {
-      setCurrentStep("artisan-step1")
+      setCurrentStep("artisan-step1");
     } else if (accountType === "client") {
-      setCurrentStep("client-form")
+      setCurrentStep("client-form");
     }
-  }
+  };
 
   // Handle back navigation
   const handleBack = () => {
     switch (currentStep) {
       case "artisan-step1":
-        setCurrentStep("account-type")
-        break
+        setCurrentStep("account-type");
+        break;
       case "artisan-step2":
-        setCurrentStep("artisan-step1")
-        break
+        setCurrentStep("artisan-step1");
+        break;
       case "client-form":
-        setCurrentStep("account-type")
-        break
+        setCurrentStep("account-type");
+        break;
       default:
-        break
+        break;
     }
-  }
+  };
 
   // Check if back button should be shown
   const showBackButton = () => {
-    return currentStep !== "account-type" && currentStep !== "success"
-  }
+    return currentStep !== "account-type" && currentStep !== "success";
+  };
 
   const getBackgroundImage = () => {
     if (currentStep === "artisan-step2" || currentStep === "success") {
-      return "/images/artisan_woman.png"
+      return "/images/artisan_woman.png";
     }
-    return "/images/artisan_woodworker.png"
-  }
+    return "/images/artisan_woodworker.png";
+  };
 
   // Get current progress for indicator
   const getProgressStep = () => {
     if (accountType === "artisan") {
       switch (currentStep) {
         case "artisan-step1":
-          return 1
+          return 1;
         case "artisan-step2":
-          return 2
+          return 2;
         default:
-          return 0
+          return 0;
       }
     }
-    return 0
-  }
+    return 0;
+  };
 
   const pageVariants = {
     initial: { opacity: 0, x: -20 },
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: 20 },
-  }
-  
+  };
+
   const handleArtisanStep1Next = (data: Partial<ArtisanFormData>) => {
-    setArtisanData((prev) => ({ ...prev, ...data }))
-    setCurrentStep("artisan-step2")
-  }
-  
+    setArtisanData((prev) => ({ ...prev, ...data }));
+    setCurrentStep("artisan-step2");
+  };
+
   const handleArtisanStep2Complete = (data: Partial<ArtisanFormData>) => {
-    setArtisanData((prev) => ({ ...prev, ...data }))
-    setCurrentStep("success")
+    setArtisanData((prev) => ({ ...prev, ...data }));
+    setCurrentStep("success");
     if (typeof window !== "undefined") {
-      localStorage.removeItem("artisan-onboarding-state")
+      localStorage.removeItem("artisan-onboarding-state");
     }
-  }
+  };
 
   if (!isHydrated) {
     return (
       <div className="flex justify-center items-center h-[100vh]">
         <div className="text-[#6366F1]">Loading...</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -168,24 +189,39 @@ export default function ProfileSetupPage() {
       {/* Form container - responsive width */}
       <div className="form_div flex flex-col justify-top items-start w-full md:w-auto mx-auto px-[20px] sm:px-[32px] md:px-[40px] py-[40px] sm:py-[56px] md:py-[7vh] overflow-y-auto h-[100vh] max-h-[100vh]">
         <div className="mb-[32px] sm:mb-[40px] md:mb-[4vh]">
-          <Image
+          <img
+            src="/images/artisan_logo.png"
+            alt="Artisyn logo"
+            width={160}
+            className="h-8 sm:h-[40px] w-auto"
+          />
+          height={40}
+          <img
             src="/images/artisan_logo.png"
             alt="Artisyn logo"
             width={160}
             height={40}
-            className="h-[32px] sm:h-[40px] w-auto"
+            className="h-8 sm:h-[40px] w-auto"
           />
         </div>
 
-        {(accountType === "artisan" && (currentStep === "artisan-step1" || currentStep === "artisan-step2")) && (
-          <div className="w-full flex items-center justify-between px-[8px] sm:px-[12px] md:px-[1vw] mb-[24px] sm:mb-[28px]" style={{ maxWidth: 520 }}>
-            <div className="flex-1">
-              <ProgressIndicator currentStep={getProgressStep()} totalSteps={2} />
-            </div>
-            {showBackButton() && (
-              <button
-                onClick={handleBack}
-                className="
+        {accountType === "artisan" &&
+          (currentStep === "artisan-step1" ||
+            currentStep === "artisan-step2") && (
+            <div
+              className="w-full flex items-center justify-between px-[8px] sm:px-[12px] md:px-[1vw] mb-[24px] sm:mb-[28px]"
+              style={{ maxWidth: 520 }}
+            >
+              <div className="flex-1">
+                <ProgressIndicator
+                  currentStep={getProgressStep()}
+                  totalSteps={2}
+                />
+              </div>
+              {showBackButton() && (
+                <button
+                  onClick={handleBack}
+                  className="
                   flex items-center gap-[8px] 
                   hover:bg-[#ededfb] 
                   border-none bg-[transparent] 
@@ -195,25 +231,25 @@ export default function ProfileSetupPage() {
                   transition-all duration-[200ms]
                   group cursor-pointer
                 "
-              >
-                <svg
-                  className="w-[16px] sm:w-[18px] h-[16px] sm:h-[18px] mr-[2px] text-[#6366F1] group-hover:text-[#4338ca] transition-colors duration-[150ms]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                <span className="font-medium">Back</span>
-              </button>
-            )}
-          </div>
-        )}
+                  <svg
+                    className="w-4 sm:w-[18px] h-[16px] sm:h-[18px] mr-[2px] text-[#6366F1] group-hover:text-[#4338ca] transition-colors duration-[150ms]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  <span className="font-medium">Back</span>
+                </button>
+              )}
+            </div>
+          )}
 
         {/* Forms container with responsive width */}
         <div className="w-full max-w-[520px]">
@@ -286,7 +322,7 @@ export default function ProfileSetupPage() {
           </AnimatePresence>
         </div>
       </div>
-      
+
       {/* Image section - hidden on mobile, visible on medium screens and up */}
       <div
         className="img_div shadow-lg hidden md:block"
@@ -295,7 +331,8 @@ export default function ProfileSetupPage() {
           height: "100vh",
           position: "relative",
           overflow: "hidden",
-          boxShadow: "0 8px 32px 0 rgba(99,102,241,0.07), 0 2px 8px 0 rgba(99,102,241,0.05)",
+          boxShadow:
+            "0 8px 32px 0 rgba(99,102,241,0.07), 0 2px 8px 0 rgba(99,102,241,0.05)",
         }}
       >
         <motion.div
@@ -332,5 +369,5 @@ export default function ProfileSetupPage() {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }
