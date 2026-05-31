@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -123,19 +123,16 @@ export function ReviewList({
 	emptyMessage = "No reviews yet.",
 }: ReviewListProps) {
 	const safePageSize = clampNumber(pageSize, 1, 50);
-	const items = reviews ?? [];
+	const items = useMemo(() => reviews ?? [], [reviews]);
 
 	const [page, setPage] = useState(1);
 	const totalPages = Math.max(1, Math.ceil(items.length / safePageSize));
-
-	useEffect(() => {
-		setPage((current) => clampNumber(current, 1, totalPages));
-	}, [items.length, safePageSize, totalPages]);
+	const currentPage = clampNumber(page, 1, totalPages);
 
 	const paged = useMemo(() => {
-		const start = (page - 1) * safePageSize;
+		const start = (currentPage - 1) * safePageSize;
 		return items.slice(start, start + safePageSize);
-	}, [items, page, safePageSize]);
+	}, [currentPage, items, safePageSize]);
 
 	if (isLoading) {
 		return (
@@ -171,20 +168,20 @@ export function ReviewList({
 				<div className="flex items-center justify-between gap-3 pt-2">
 					<Button
 						variant="outline"
-						onClick={() => setPage((p) => Math.max(1, p - 1))}
-						disabled={page <= 1}
+						onClick={() => setPage(Math.max(1, currentPage - 1))}
+						disabled={currentPage <= 1}
 					>
 						Prev
 					</Button>
 
 					<div className="text-sm tabular-nums text-slate-600">
-						Page {page} of {totalPages}
+						Page {currentPage} of {totalPages}
 					</div>
 
 					<Button
 						variant="outline"
-						onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-						disabled={page >= totalPages}
+						onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+						disabled={currentPage >= totalPages}
 					>
 						Next
 					</Button>
