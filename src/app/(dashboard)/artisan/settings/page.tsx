@@ -6,7 +6,6 @@ import {
   User, 
   Bell, 
   Shield, 
-  Key, 
   HelpCircle, 
   CheckCircle2, 
   AlertTriangle, 
@@ -62,6 +61,34 @@ interface Provider {
   connectedAt?: string;
 }
 
+type RawProvider = Omit<Provider, "icon">;
+
+interface SettingsTab {
+  id: "profile" | "linked" | "security" | "notifications";
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+}
+
+const getIcon = (id: string) => {
+  switch (id) {
+    case "google": return GoogleIcon;
+    case "github": return GithubIcon;
+    case "apple": return AppleIcon;
+    case "facebook": return FacebookIcon;
+    case "twitter": return TwitterIcon;
+    default: return Link2;
+  }
+};
+
+const getDefaultProviders = (): Provider[] => [
+  { id: "google", name: "Google", icon: GoogleIcon, connected: true, email: "samuel.doe@gmail.com", connectedAt: "May 12, 2026" },
+  { id: "github", name: "GitHub", icon: GithubIcon, connected: false },
+  { id: "apple", name: "Apple", icon: AppleIcon, connected: false },
+  { id: "facebook", name: "Facebook", icon: FacebookIcon, connected: false },
+  { id: "twitter", name: "Twitter", icon: TwitterIcon, connected: false }
+];
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"linked" | "profile" | "security" | "notifications">("linked");
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -86,7 +113,7 @@ export default function SettingsPage() {
         if (response.ok) {
           const data = await response.json();
           // Map backend response and inject appropriate icons
-          const mapped = data.map((p: any) => ({
+          const mapped = data.map((p: RawProvider) => ({
             ...p,
             icon: getIcon(p.id)
           }));
@@ -94,24 +121,30 @@ export default function SettingsPage() {
         } else {
           throw new Error("API not available, falling back to local storage");
         }
-      } catch (err) {
+      } catch {
         // Fallback to local storage or defaults
         const stored = localStorage.getItem("artisan-linked-providers");
         if (stored) {
           try {
             const parsed = JSON.parse(stored);
-            const mapped = parsed.map((p: any) => ({
+            const mapped = parsed.map((p: RawProvider) => ({
               ...p,
               icon: getIcon(p.id)
             }));
             setProviders(mapped);
-          } catch (e) {
+          } catch {
             setProviders(getDefaultProviders());
           }
         } else {
           const defaults = getDefaultProviders();
           setProviders(defaults);
-          localStorage.setItem("artisan-linked-providers", JSON.stringify(defaults.map(({ icon, ...rest }) => rest)));
+          localStorage.setItem("artisan-linked-providers", JSON.stringify(defaults.map((p) => ({
+            id: p.id,
+            name: p.name,
+            connected: p.connected,
+            email: p.email,
+            connectedAt: p.connectedAt
+          }))));
         }
       } finally {
         setLoading(false);
@@ -120,25 +153,6 @@ export default function SettingsPage() {
 
     fetchAccounts();
   }, []);
-
-  const getIcon = (id: string) => {
-    switch (id) {
-      case "google": return GoogleIcon;
-      case "github": return GithubIcon;
-      case "apple": return AppleIcon;
-      case "facebook": return FacebookIcon;
-      case "twitter": return TwitterIcon;
-      default: return Link2;
-    }
-  };
-
-  const getDefaultProviders = (): Provider[] => [
-    { id: "google", name: "Google", icon: GoogleIcon, connected: true, email: "samuel.doe@gmail.com", connectedAt: "May 12, 2026" },
-    { id: "github", name: "GitHub", icon: GithubIcon, connected: false },
-    { id: "apple", name: "Apple", icon: AppleIcon, connected: false },
-    { id: "facebook", name: "Facebook", icon: FacebookIcon, connected: false },
-    { id: "twitter", name: "Twitter", icon: TwitterIcon, connected: false }
-  ];
 
   // Helper to trigger toast notifications
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
@@ -168,7 +182,7 @@ export default function SettingsPage() {
 
       if (res.ok) {
         const updatedData = await res.json();
-        const mapped = updatedData.map((p: any) => ({
+        const mapped = updatedData.map((p: RawProvider) => ({
           ...p,
           icon: getIcon(p.id)
         }));
@@ -177,7 +191,7 @@ export default function SettingsPage() {
       } else {
         throw new Error("API post failed");
       }
-    } catch (err) {
+    } catch {
       // Fallback local update
       await new Promise((resolve) => setTimeout(resolve, 1500)); // Premium feel latency
       const updated = providers.map((p) => {
@@ -193,7 +207,13 @@ export default function SettingsPage() {
       });
       setProviders(updated);
       // Persist in localStorage
-      localStorage.setItem("artisan-linked-providers", JSON.stringify(updated.map(({ icon, ...rest }) => rest)));
+      localStorage.setItem("artisan-linked-providers", JSON.stringify(updated.map((p) => ({
+        id: p.id,
+        name: p.name,
+        connected: p.connected,
+        email: p.email,
+        connectedAt: p.connectedAt
+      }))));
       showToast(`Successfully linked ${linkProvider.name} account!`, "success");
     } finally {
       setActionLoading(null);
@@ -217,7 +237,7 @@ export default function SettingsPage() {
 
       if (res.ok) {
         const updatedData = await res.json();
-        const mapped = updatedData.map((p: any) => ({
+        const mapped = updatedData.map((p: RawProvider) => ({
           ...p,
           icon: getIcon(p.id)
         }));
@@ -226,7 +246,7 @@ export default function SettingsPage() {
       } else {
         throw new Error("API delete failed");
       }
-    } catch (err) {
+    } catch {
       // Fallback local update
       await new Promise((resolve) => setTimeout(resolve, 1200)); // Premium feel latency
       const updated = providers.map((p) => {
@@ -242,7 +262,13 @@ export default function SettingsPage() {
       });
       setProviders(updated);
       // Persist in localStorage
-      localStorage.setItem("artisan-linked-providers", JSON.stringify(updated.map(({ icon, ...rest }) => rest)));
+      localStorage.setItem("artisan-linked-providers", JSON.stringify(updated.map((p) => ({
+        id: p.id,
+        name: p.name,
+        connected: p.connected,
+        email: p.email,
+        connectedAt: p.connectedAt
+      }))));
       showToast(`Disconnected ${providerName} successfully.`, "success");
     } finally {
       setActionLoading(null);
@@ -321,18 +347,18 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Navigation panel */}
         <div className="lg:col-span-1 space-y-2">
-          {[
+          {([
             { id: "profile", label: "Profile Details", icon: User },
             { id: "linked", label: "Linked Accounts", icon: Link2, badge: "Socials" },
             { id: "security", label: "Security & Login", icon: Shield },
             { id: "notifications", label: "Notifications", icon: Bell }
-          ].map((tab) => {
+          ] as SettingsTab[]).map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-200 ${
                   active 
                     ? "bg-[#605DEC] text-white shadow-md font-semibold" 

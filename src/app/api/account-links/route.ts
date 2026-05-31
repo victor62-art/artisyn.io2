@@ -30,7 +30,7 @@ async function getAccounts(): Promise<ProviderState[]> {
   
   try {
     return JSON.parse(accountsCookie);
-  } catch (e) {
+  } catch {
     return DEFAULT_ACCOUNTS;
   }
 }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     
     await saveAccounts(updatedAccounts);
     return NextResponse.json(updatedAccounts);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to link account" }, { status: 500 });
   }
 }
@@ -118,7 +118,7 @@ export async function DELETE(request: NextRequest) {
     
     await saveAccounts(updatedAccounts);
     return NextResponse.json(updatedAccounts);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to unlink account" }, { status: 500 });
   }
 }
