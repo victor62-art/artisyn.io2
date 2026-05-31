@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { jobs } from "../dummyjobs";
 import { JSX } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   FiFilter,
   FiBriefcase,
 } from "react-icons/fi";
+import { MdUpdateDisabled } from "react-icons/md";
 
 const iconMap: Record<string, JSX.Element> = {
   FiTool: <FiTool />,
@@ -31,19 +33,36 @@ interface Props {
 }
 
 const JobFilter = ({ onFilterChange }: Props) => {
-  const [filters, setFilters] = useState<Filters>({
-    search: "",
-    role: null,
-    urgency: null,
-  });
+   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [openDropdown, setOpenDropdown] = useState(false);
-  const uniqueRoles = Array.from(new Set(jobs.map((job) => job.title)));
 
-  const updateFilters = (newFilters: Partial<Filters>) => {
-    const updated = { ...filters, ...newFilters };
-    setFilters(updated);
-    onFilterChange(updated);
+  // 1. Read filter state FROM the URL
+  const filters: Filters = {
+    search: searchParams.get("search") ?? "",
+    role: searchParams.get("role") ?? null,
+    urgency: searchParams.get("urgency") ?? null,
   };
+   // 2. On mount
+   useEffect(() => {
+    onFilterChange(filters);
+  }, [searchParams]);
+
+const uniqueRoles = Array.from(new Set(jobs.map((job) => job.title)));
+
+// 3. Write filter changes TO the URL
+const updateFilters = (newFilters: Partial<Filters>) => {
+    const updated = { ...filters, ...newFilters };
+    const params = new URLSearchParams();
+
+  if (updated.search) params.set("search", updated.search);
+  if (updated.role) params.set("roles", updated.role);
+  if (updated.urgency) params.set("urgency", updated.urgency);
+
+     router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
 
   return (
     <div className="flex items-center gap-3 rounded-lg relative flex-col lg:flex-row md:flex-row">
@@ -57,16 +76,20 @@ const JobFilter = ({ onFilterChange }: Props) => {
       </div>
       <div className="flex items-center relative lg:w-[63%] md:w-[63%] w-full justify-between">
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => updateFilters({ role: null })}
-            className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${
-              !filters.role
-                ? "bg-black text-white"
-                : "bg-gray-100 text-gray-700"
-            }`}
-          >
-            All
-          </button>
+       <button
+  onClick={() => {
+    router.push(pathname, { scroll: false });
+    onFilterChange({ search: "", role: null, urgency: null });
+  }}
+  className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${
+    !filters.role && !filters.search && !filters.urgency
+      ? "bg-black text-white"
+      : "bg-gray-100 text-gray-700"
+  }`}
+>
+  All
+</button>
+          
 
           {uniqueRoles.slice(0, 6).map((role) => {
             const job = jobs.find((j) => j.title === role);

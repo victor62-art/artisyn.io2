@@ -19,7 +19,8 @@ import {
   Mail,
   Smartphone,
   Calendar,
-  Save
+  Save,
+  Eye
 } from "lucide-react";
 
 // Inline SVGs for social providers to guarantee error-free rendering and custom coloring
@@ -97,7 +98,7 @@ interface Provider {
 type RawProvider = Omit<Provider, "icon">;
 
 interface SettingsTab {
-  id: "profile" | "linked" | "security" | "notifications";
+  id: "profile" | "linked" | "security" | "privacy" | "notifications";
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
@@ -149,7 +150,7 @@ const getDefaultProviders = (): Provider[] => [
 ];
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<"linked" | "profile" | "security" | "notifications">("linked");
+  const [activeTab, setActiveTab] = useState<"linked" | "profile" | "security" | "privacy" | "notifications">("linked");
   
   // Linked providers state
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -169,7 +170,17 @@ export default function SettingsPage() {
   // Custom toast notification state
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
 
-  // Fetch providers and notifications on mount
+  // Privacy Settings State
+  const [privacySettings, setPrivacySettings] = useState({
+    profileVisibility: "public",
+    showEmail: false,
+    showEarnings: false,
+    discoverable: true,
+  });
+  const [privacyLoading, setPrivacyLoading] = useState(true);
+  const [privacySaving, setPrivacySaving] = useState(false);
+
+  // Fetch providers, notifications and privacy on mount
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
@@ -241,8 +252,24 @@ export default function SettingsPage() {
       }
     };
 
+    const fetchPrivacySettings = async () => {
+      try {
+        setPrivacyLoading(true);
+        const response = await fetch("/api/user/privacy");
+        if (response.ok) {
+          const data = await response.json();
+          setPrivacySettings(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch privacy settings:", error);
+      } finally {
+        setPrivacyLoading(false);
+      }
+    };
+
     fetchAccounts();
     fetchPreferences();
+    fetchPrivacySettings();
   }, []);
 
   // Helper to trigger toast notifications
@@ -260,6 +287,7 @@ export default function SettingsPage() {
     
     setActionLoading(linkProvider.id);
     const targetProviderId = linkProvider.id;
+    const providerName = linkProvider.name;
     setLinkProvider(null);
     setLinkEmail("");
 
@@ -277,7 +305,7 @@ export default function SettingsPage() {
           icon: getIcon(p.id)
         }));
         setProviders(mapped);
-        showToast(`Successfully linked ${linkProvider.name} account!`, "success");
+        showToast(`Successfully linked ${providerName} account!`, "success");
       } else {
         throw new Error();
       }
@@ -302,7 +330,7 @@ export default function SettingsPage() {
         email: p.email,
         connectedAt: p.connectedAt
       }))));
-      showToast(`Successfully linked ${linkProvider.name} account!`, "success");
+      showToast(`Successfully linked ${providerName} account!`, "success");
     } finally {
       setActionLoading(null);
     }
@@ -424,6 +452,37 @@ export default function SettingsPage() {
     }
   };
 
+  // Privacy Handlers
+  const handlePrivacyToggle = (key: keyof typeof privacySettings) => {
+    setPrivacySettings(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const handlePrivacySave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPrivacySaving(true);
+
+    try {
+      const response = await fetch("/api/user/privacy", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(privacySettings),
+      });
+
+      if (response.ok) {
+        showToast("Privacy settings saved successfully!", "success");
+      } else {
+        throw new Error("Persistence failed");
+      }
+    } catch (error) {
+      showToast("Error saving settings. Please try again.", "error");
+    } finally {
+      setPrivacySaving(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto py-4 px-2">
       {/* Toast Alert */}
@@ -489,6 +548,7 @@ export default function SettingsPage() {
             { id: "profile", label: "Profile Details", icon: User },
             { id: "linked", label: "Linked Accounts", icon: Link2, badge: "Socials" },
             { id: "security", label: "Security & Login", icon: Shield },
+            { id: "privacy", label: "Privacy Settings", icon: Eye },
             { id: "notifications", label: "Notifications", icon: Bell }
           ] as SettingsTab[]).map((tab) => {
             const Icon = tab.icon;
@@ -537,6 +597,7 @@ export default function SettingsPage() {
             {/* LINKED ACCOUNTS PANEL */}
             {activeTab === "linked" && (
               <motion.div
+                key="linked"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -665,13 +726,13 @@ export default function SettingsPage() {
             {/* NOTIFICATION PREFERENCES PANEL */}
             {activeTab === "notifications" && (
               <motion.div
+                key="notifications"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
                 className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
               >
-                {/* Panel Header */}
                 <div className="p-6 border-b border-gray-200 bg-linear-to-r from-gray-50 to-white flex items-center justify-between">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">Notification Preferences</h2>
@@ -691,7 +752,6 @@ export default function SettingsPage() {
                   </button>
                 </div>
 
-                {/* Panel Content */}
                 <div className="p-6">
                   {prefLoading ? (
                     <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -854,9 +914,123 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
-            {/* Sub-panels mock for premium settings layout */}
-            {activeTab !== "linked" && activeTab !== "notifications" && (
+            {/* PRIVACY SETTINGS PANEL */}
+            {activeTab === "privacy" && (
               <motion.div
+                key="privacy"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+              >
+                <div className="p-6 border-b border-gray-200 bg-linear-to-r from-gray-50 to-white flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Privacy Settings</h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Control your profile discoverability and visibility on the platform.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      setPrivacyLoading(true);
+                      try {
+                        const response = await fetch("/api/user/privacy");
+                        if (response.ok) {
+                          const data = await response.json();
+                          setPrivacySettings(data);
+                        }
+                      } catch (error) {
+                        console.error("Failed to fetch privacy settings:", error);
+                      } finally {
+                        setPrivacyLoading(false);
+                      }
+                    }}
+                    className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition-colors"
+                    title="Refresh privacy settings"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="p-6">
+                  {privacyLoading ? (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-[#605DEC]" />
+                      <span className="text-sm text-gray-500 font-medium">Fetching privacy settings...</span>
+                    </div>
+                  ) : (
+                    <form onSubmit={handlePrivacySave} className="space-y-8">
+                      {/* Profile Visibility */}
+                      <section>
+                        <label className="block text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
+                          Profile Visibility
+                        </label>
+                        <select
+                          value={privacySettings.profileVisibility}
+                          onChange={(e) => setPrivacySettings({ ...privacySettings, profileVisibility: e.target.value })}
+                          className="w-full md:w-1/2 p-3 bg-gray-50 border border-gray-200 text-gray-950 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
+                        >
+                          <option value="public">Public</option>
+                          <option value="followers">Followers Only</option>
+                          <option value="private">Private</option>
+                        </select>
+                        <p className="mt-2 text-xs text-gray-500">
+                          Public profiles can be seen by anyone on the platform.
+                        </p>
+                      </section>
+
+                      <hr className="border-gray-150" />
+
+                      {/* Toggles */}
+                      <div className="space-y-6">
+                        {[
+                          { id: "showEmail", label: "Show email on profile", desc: "Allow users to see your contact email address." },
+                          { id: "showEarnings", label: "Display total earnings", desc: "Show your cumulative earnings to build trust." },
+                          { id: "discoverable", label: "Search discoverability", desc: "Appear in the search results and artisan directory." }
+                        ].map((item) => (
+                          <div key={item.id} className="flex items-center justify-between">
+                            <div className="flex-grow pr-4">
+                              <h3 className="text-sm font-semibold text-gray-800">{item.label}</h3>
+                              <p className="text-xs text-gray-500">{item.desc}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handlePrivacyToggle(item.id as keyof typeof privacySettings)}
+                              className={`${privacySettings[item.id as keyof typeof privacySettings] ? "bg-[#5eb65a]" : "bg-gray-350"} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                            >
+                              <span className={`${privacySettings[item.id as keyof typeof privacySettings] ? "translate-x-6" : "translate-x-1"} pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out mt-1`} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-end pt-6 border-t border-gray-150 mt-6">
+                        <button
+                          type="submit"
+                          disabled={privacySaving}
+                          className="px-6 py-2.5 bg-[#605DEC] hover:bg-[#4d4ac9] text-white font-semibold rounded-xl text-sm transition-colors shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {privacySaving ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-white" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save Changes"
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Sub-panels mock for premium settings layout */}
+            {activeTab !== "linked" && activeTab !== "notifications" && activeTab !== "privacy" && (
+              <motion.div
+                key="mock"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
