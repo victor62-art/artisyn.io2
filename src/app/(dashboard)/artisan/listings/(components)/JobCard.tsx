@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { jobs } from "../dummyjobs";
 import Image from "next/image";
 import bgImg from "../(assets)/bg.png";
@@ -37,7 +37,12 @@ const JobCard = () => {
 
   return (
     <div>
-      <JobFilter onFilterChange={handleFilterChange} />
+      {/* Suspense is required, useSearchParams needs it */}
+      <Suspense fallback={<div className="text-sm text-gray-400">Loading filters...</div>}>
+        <JobFilter onFilterChange={handleFilterChange} />
+      </Suspense>
+      
+        {/* rest of JobCard is unchanged */}
       <div className="mt-8">
         {filteredJobs.map((info, index) => (
           <div key={index} className="flex mb-4 lg:flex-row md:flex-row flex-col">

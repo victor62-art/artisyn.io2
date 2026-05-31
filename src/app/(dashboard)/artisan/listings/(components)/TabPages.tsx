@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react"; 
 import JobCard from "./JobCard";
 import AppliedJobsList from "./AppliedJobsList";
 
@@ -46,7 +46,11 @@ const TabPages = () => {
         </div>
       </div>
       <div className="mt-4">
-        {activeTab === "available" && <JobCard />}
+     {activeTab === "available" && (
+          <Suspense fallback={<p className="text-center text-sm text-gray-400 py-10">Loading jobs...</p>}>
+            <JobCard />
+          </Suspense>
+          )}
         {activeTab === "active" && <EmptyState text="No active jobs yet." />}
         {activeTab === "applied" && <AppliedJobsList />}
         {activeTab === "completed" && <EmptyState text="No completed jobs yet." />}
