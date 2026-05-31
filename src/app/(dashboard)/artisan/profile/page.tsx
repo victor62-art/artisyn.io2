@@ -1,6 +1,7 @@
 import { ProfileIdentitySection } from "@/components/artisan/profile-identity-section"
 import { ProfileSkillsSection } from "@/components/artisan/profile-skills-section"
 import { ProfileLocationSection } from "@/components/artisan/profile-location-section"
+import { PortfolioMediaManager } from "@/components/artisan/portfolio-media-manager"
 
 // Mock data — replace with real data fetching once API is available
 const mockProfile = {
@@ -30,11 +31,13 @@ export default function ProfilePage() {
           Keep your profile up to date so clients can find and trust you.
         </p>
       </div>
-
       <div className="space-y-6">
         <ProfileIdentitySection initialData={mockProfile.identity} />
         <ProfileSkillsSection initialData={mockProfile.skills} />
         <ProfileLocationSection initialData={mockProfile.location} />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <PortfolioMediaManager />
+        </div>
       </div>
     </div>
   )
