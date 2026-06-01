@@ -5,6 +5,7 @@ import { jobs } from "../dummyjobs";
 import Image from "next/image";
 import bgImg from "../(assets)/bg.png";
 import JobFilter from "./JobFilters";
+import { JobStatusBadge } from "@/components/jobs/job-status-badge";
 
 const JobCard = () => {
   const [filteredJobs, setFilteredJobs] = useState(jobs);
@@ -57,9 +58,12 @@ const JobCard = () => {
             </div>
 
             <div className="lg:w-[70%] md:w-[70%] w-full flex flex-col lg:my-0 md:my-0 my-3">
-             <div className="flex lg:justify-between lg:items-center md:justify-between md:items-center  lg:flex-row md:flex-row flex-col">
+             <div className="flex lg:justify-between lg:items-center md:justify-between md:items-center  lg:flex-row md:flex-row flex-col gap-3">
                 <div>
-                <p className="text-[12px] text-[#212121]">Posted 2 mins ago</p>
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <p className="text-[12px] text-[#212121]">Posted 2 mins ago</p>
+                  <JobStatusBadge status="available" size="sm" />
+                </div>
                 <h2 className="lg:text-[20px] md:text-[18px] text-[16px] font-semibold">
                   {info.shortDescription}
                 </h2>
