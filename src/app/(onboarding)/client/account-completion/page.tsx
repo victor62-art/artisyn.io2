@@ -100,9 +100,21 @@ export default function AccountCompletionPage() {
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-      console.log('Form submitted with data:', formData);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to submit form');
+      }
+
+      const data = await response.json();
+      console.log('Form submitted successfully:', data);
       setSubmitSuccess(true);
 
       setTimeout(() => {
@@ -111,10 +123,13 @@ export default function AccountCompletionPage() {
       }, 2000);
     } catch (error) {
       console.error('Error submitting form:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'An error occurred while submitting the form. Please try again.';
+      
       setErrors((prev) => ({
         ...prev,
-        email:
-          'An error occurred while submitting the form. Please try again.',
+        email: errorMessage,
       }));
     } finally {
       setIsLoading(false);
