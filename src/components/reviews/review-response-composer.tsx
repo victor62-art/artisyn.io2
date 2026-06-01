@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Edit3, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,25 +33,31 @@ export function ReviewResponseComposer({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const fetchResponse = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/review-responses/${reviewId}`);
-      const json = await res.json();
-      if (json.data) {
-        setResponse(json.data);
-        setMode("view");
-      }
-    } catch {
-      // Response not found or fetch failed - stay in view mode
-    } finally {
-      setLoading(false);
-    }
-  }, [reviewId]);
-
   useEffect(() => {
-    fetchResponse();
-  }, [fetchResponse]);
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/review-responses/${reviewId}`);
+        const json = await res.json();
+        if (!cancelled && json.data) {
+          setResponse(json.data);
+          setMode("view");
+        }
+      } catch {
+        // Response not found or fetch failed - stay in view mode
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewId]);
 
   const handleSubmit = async () => {
     const trimmed = draft.trim();
