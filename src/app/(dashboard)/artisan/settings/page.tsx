@@ -16,6 +16,10 @@ import {
   Sparkles,
   RefreshCw,
   X,
+  Mail,
+  Smartphone,
+  Calendar,
+  Save,
   Eye
 } from "lucide-react";
 
@@ -53,6 +57,35 @@ const TwitterIcon = () => (
   </svg>
 );
 
+// Accessible Switch Toggle Component
+const Switch = ({ 
+  checked, 
+  onChange, 
+  disabled 
+}: { 
+  checked: boolean; 
+  onChange: (val: boolean) => void; 
+  disabled?: boolean;
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    disabled={disabled}
+    onClick={() => onChange(!checked)}
+    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#605DEC] focus:ring-offset-2 ${
+      checked ? "bg-[#605DEC]" : "bg-gray-200"
+    } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+  >
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+        checked ? "translate-x-5" : "translate-x-0"
+      }`}
+    />
+  </button>
+);
+
 interface Provider {
   id: string;
   name: string;
@@ -70,6 +103,32 @@ interface SettingsTab {
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
 }
+
+interface NotificationPreferences {
+  email: {
+    jobAlerts: boolean;
+    marketing: boolean;
+    security: boolean;
+  };
+  push: {
+    directMessages: boolean;
+    jobUpdates: boolean;
+  };
+  digest: "none" | "daily" | "weekly";
+}
+
+const DEFAULT_PREFERENCES: NotificationPreferences = {
+  email: {
+    jobAlerts: true,
+    marketing: false,
+    security: true,
+  },
+  push: {
+    directMessages: true,
+    jobUpdates: true,
+  },
+  digest: "daily",
+};
 
 const getIcon = (id: string) => {
   switch (id) {
@@ -92,36 +151,21 @@ const getDefaultProviders = (): Provider[] => [
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"linked" | "profile" | "security" | "privacy" | "notifications">("linked");
+  
+  // Linked providers state
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
+  // Notification Preferences State
+  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+  const [prefLoading, setPrefLoading] = useState<boolean>(true);
+  const [prefSaving, setPrefSaving] = useState<boolean>(false);
+
   // Dialog / Modal state
   const [unlinkProvider, setUnlinkProvider] = useState<Provider | null>(null);
   const [linkProvider, setLinkProvider] = useState<Provider | null>(null);
   const [linkEmail, setLinkEmail] = useState("");
-function ProfileSettings() {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm p-8 text-center">
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">Profile Settings</h2>
-      <p className="text-gray-500">Profile settings subsection coming soon.</p>
-    </div>
-  );
-}
-
-function PreferencesSettings() {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm p-8 text-center">
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">Preferences</h2>
-      <p className="text-gray-500">Preferences subsection coming soon.</p>
-    </div>
-  );
-}
-
-function PrivacySettings() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
   
   // Custom toast notification state
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
@@ -136,26 +180,23 @@ function PrivacySettings() {
   const [privacyLoading, setPrivacyLoading] = useState(true);
   const [privacySaving, setPrivacySaving] = useState(false);
 
-  // Initialize and Fetch provider link states
+  // Fetch providers, notifications and privacy on mount
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
         setLoading(true);
-        // Try calling the actual endpoint
         const response = await fetch("/api/account-links", { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
-          // Map backend response and inject appropriate icons
           const mapped = data.map((p: RawProvider) => ({
             ...p,
             icon: getIcon(p.id)
           }));
           setProviders(mapped);
         } else {
-          throw new Error("API not available, falling back to local storage");
+          throw new Error();
         }
       } catch {
-        // Fallback to local storage or defaults
         const stored = localStorage.getItem("artisan-linked-providers");
         if (stored) {
           try {
@@ -184,11 +225,33 @@ function PrivacySettings() {
       }
     };
 
-    fetchAccounts();
-  }, []);
+    const fetchPreferences = async () => {
+      try {
+        setPrefLoading(true);
+        const response = await fetch("/api/preferences", { cache: "no-store" });
+        if (response.ok) {
+          const data = await response.json();
+          setPreferences(data);
+        } else {
+          throw new Error();
+        }
+      } catch {
+        const stored = localStorage.getItem("artisan-notification-preferences");
+        if (stored) {
+          try {
+            setPreferences(JSON.parse(stored));
+          } catch {
+            setPreferences(DEFAULT_PREFERENCES);
+          }
+        } else {
+          setPreferences(DEFAULT_PREFERENCES);
+          localStorage.setItem("artisan-notification-preferences", JSON.stringify(DEFAULT_PREFERENCES));
+        }
+      } finally {
+        setPrefLoading(false);
+      }
+    };
 
-  // Fetch privacy settings on load
-  useEffect(() => {
     const fetchPrivacySettings = async () => {
       try {
         setPrivacyLoading(true);
@@ -204,6 +267,8 @@ function PrivacySettings() {
       }
     };
 
+    fetchAccounts();
+    fetchPreferences();
     fetchPrivacySettings();
   }, []);
 
@@ -227,7 +292,6 @@ function PrivacySettings() {
     setLinkEmail("");
 
     try {
-      // Try hitting the API endpoint first
       const res = await fetch("/api/account-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -243,11 +307,10 @@ function PrivacySettings() {
         setProviders(mapped);
         showToast(`Successfully linked ${providerName} account!`, "success");
       } else {
-        throw new Error("API post failed");
+        throw new Error();
       }
     } catch {
-      // Fallback local update
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Premium feel latency
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       const updated = providers.map((p) => {
         if (p.id === targetProviderId) {
           return {
@@ -260,7 +323,6 @@ function PrivacySettings() {
         return p;
       });
       setProviders(updated);
-      // Persist in localStorage
       localStorage.setItem("artisan-linked-providers", JSON.stringify(updated.map((p) => ({
         id: p.id,
         name: p.name,
@@ -284,7 +346,6 @@ function PrivacySettings() {
     setUnlinkProvider(null);
 
     try {
-      // Try hitting the API endpoint first
       const res = await fetch(`/api/account-links?provider=${targetProviderId}`, {
         method: "DELETE",
       });
@@ -298,11 +359,10 @@ function PrivacySettings() {
         setProviders(mapped);
         showToast(`Disconnected ${providerName} successfully.`, "success");
       } else {
-        throw new Error("API delete failed");
+        throw new Error();
       }
     } catch {
-      // Fallback local update
-      await new Promise((resolve) => setTimeout(resolve, 1200)); // Premium feel latency
+      await new Promise((resolve) => setTimeout(resolve, 1200));
       const updated = providers.map((p) => {
         if (p.id === targetProviderId) {
           return {
@@ -315,7 +375,6 @@ function PrivacySettings() {
         return p;
       });
       setProviders(updated);
-      // Persist in localStorage
       localStorage.setItem("artisan-linked-providers", JSON.stringify(updated.map((p) => ({
         id: p.id,
         name: p.name,
@@ -329,7 +388,7 @@ function PrivacySettings() {
     }
   };
 
-  // Check if we can disconnect (preventing disconnecting everything if it's the last login method)
+  // Check if we can disconnect
   const connectedCount = providers.filter(p => p.connected).length;
   
   const handleDisconnectClick = (provider: Provider) => {
@@ -340,6 +399,60 @@ function PrivacySettings() {
     setUnlinkProvider(provider);
   };
 
+  // Preference Handlers
+  const handleEmailToggle = (key: keyof NotificationPreferences["email"]) => {
+    setPreferences((prev) => ({
+      ...prev,
+      email: {
+        ...prev.email,
+        [key]: !prev.email[key],
+      },
+    }));
+  };
+
+  const handlePushToggle = (key: keyof NotificationPreferences["push"]) => {
+    setPreferences((prev) => ({
+      ...prev,
+      push: {
+        ...prev.push,
+        [key]: !prev.push[key],
+      },
+    }));
+  };
+
+  const handleDigestChange = (val: NotificationPreferences["digest"]) => {
+    setPreferences((prev) => ({
+      ...prev,
+      digest: val,
+    }));
+  };
+
+  const handleSavePreferences = async () => {
+    try {
+      setPrefSaving(true);
+      const res = await fetch("/api/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(preferences),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPreferences(data);
+        showToast("Notification preferences updated successfully!", "success");
+      } else {
+        throw new Error();
+      }
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      localStorage.setItem("artisan-notification-preferences", JSON.stringify(preferences));
+      showToast("Notification preferences updated successfully!", "success");
+    } finally {
+      setPrefSaving(false);
+    }
+  };
+
+  // Privacy Handlers
   const handlePrivacyToggle = (key: keyof typeof privacySettings) => {
     setPrivacySettings(prev => ({
       ...prev,
@@ -481,6 +594,7 @@ function PrivacySettings() {
         {/* Configuration content panel */}
         <div className="lg:col-span-3">
           <AnimatePresence mode="wait">
+            {/* LINKED ACCOUNTS PANEL */}
             {activeTab === "linked" && (
               <motion.div
                 key="linked"
@@ -609,6 +723,198 @@ function PrivacySettings() {
               </motion.div>
             )}
 
+            {/* NOTIFICATION PREFERENCES PANEL */}
+            {activeTab === "notifications" && (
+              <motion.div
+                key="notifications"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+              >
+                <div className="p-6 border-b border-gray-200 bg-linear-to-r from-gray-50 to-white flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Notification Preferences</h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Choose when and how you want to be notified about updates and activity.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setPrefLoading(true);
+                      setTimeout(() => setPrefLoading(false), 500);
+                    }}
+                    className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition-colors"
+                    title="Reload Preferences"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="p-6">
+                  {prefLoading ? (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-[#605DEC]" />
+                      <span className="text-sm text-gray-500 font-medium">Fetching preferences...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      {/* Section 1: Email Notifications */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+                          <Mail className="w-5 h-5 text-indigo-500" />
+                          <h3 className="text-base font-bold text-gray-800">Email Alerts</h3>
+                        </div>
+
+                        <div className="space-y-4.5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">New Job Alerts</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Receive email notifications when new job listings matching your skills are posted.
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.email.jobAlerts} 
+                              onChange={() => handleEmailToggle("jobAlerts")} 
+                            />
+                          </div>
+
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">Account Security</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Get notified about login attempts, password changes, and security updates. (Highly Recommended)
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.email.security} 
+                              onChange={() => handleEmailToggle("security")} 
+                            />
+                          </div>
+
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">Marketing & News</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Receive newsletters, product tips, and promotional updates about the platform.
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.email.marketing} 
+                              onChange={() => handleEmailToggle("marketing")} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 2: Push Notifications */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+                          <Smartphone className="w-5 h-5 text-indigo-500" />
+                          <h3 className="text-base font-bold text-gray-800">Push Notifications</h3>
+                        </div>
+
+                        <div className="space-y-4.5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">Direct Messages</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Get notified immediately when a client or admin sends you a chat message.
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.push.directMessages} 
+                              onChange={() => handlePushToggle("directMessages")} 
+                            />
+                          </div>
+
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900">Job Updates</h4>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                                Get notified when a client views, replies, or changes the state of your active proposals.
+                              </p>
+                            </div>
+                            <Switch 
+                              checked={preferences.push.jobUpdates} 
+                              onChange={() => handlePushToggle("jobUpdates")} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 3: Summary Digest Selection */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+                          <Calendar className="w-5 h-5 text-indigo-500" />
+                          <h3 className="text-base font-bold text-gray-800">Activity Digest</h3>
+                        </div>
+                        
+                        <div>
+                          <p className="text-xs text-gray-500 mb-3">
+                            Choose how frequently you would like to receive general summaries of your profile view count, proposals, and active job statuses.
+                          </p>
+
+                          <div className="grid grid-cols-3 gap-3">
+                            {([
+                              { value: "none", label: "None", desc: "No reports" },
+                              { value: "daily", label: "Daily", desc: "Every morning" },
+                              { value: "weekly", label: "Weekly", desc: "Every Sunday" }
+                            ] as const).map((opt) => {
+                              const selected = preferences.digest === opt.value;
+                              return (
+                                <button
+                                  type="button"
+                                  key={opt.value}
+                                  onClick={() => handleDigestChange(opt.value)}
+                                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-200 cursor-pointer ${
+                                    selected 
+                                      ? "border-[#605DEC] bg-indigo-50/50 text-[#605DEC] font-semibold" 
+                                      : "border-gray-200 hover:bg-gray-50 text-gray-700"
+                                  }`}
+                                >
+                                  <span className="text-sm">{opt.label}</span>
+                                  <span className="text-[10px] text-gray-400 font-normal mt-0.5">{opt.desc}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Save Button Action */}
+                      <div className="flex items-center justify-end pt-5 border-t border-gray-150">
+                        <button
+                          type="button"
+                          onClick={handleSavePreferences}
+                          disabled={prefSaving}
+                          className="px-6 py-2.5 bg-[#605DEC] hover:bg-[#4d4ac9] text-white font-semibold rounded-xl text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md flex items-center justify-center gap-2"
+                        >
+                          {prefSaving ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" /> Saving Changes...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4" /> Save Preferences
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 text-xs text-gray-500 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  Your preferences are stored securely and synchronized using the User Settings API.
+                </div>
+              </motion.div>
+            )}
+
+            {/* PRIVACY SETTINGS PANEL */}
             {activeTab === "privacy" && (
               <motion.div
                 key="privacy"
@@ -691,7 +997,7 @@ function PrivacySettings() {
                             <button
                               type="button"
                               onClick={() => handlePrivacyToggle(item.id as keyof typeof privacySettings)}
-                              className={`${privacySettings[item.id as keyof typeof privacySettings] ? "bg-[#5eb65a]" : "bg-gray-350"} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                              className={`${privacySettings[item.id as keyof typeof privacySettings] ? "bg-[#5eb65a]" : "bg-gray-300"} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
                             >
                               <span className={`${privacySettings[item.id as keyof typeof privacySettings] ? "translate-x-6" : "translate-x-1"} pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out mt-1`} />
                             </button>
@@ -722,7 +1028,7 @@ function PrivacySettings() {
             )}
 
             {/* Sub-panels mock for premium settings layout */}
-            {activeTab !== "linked" && activeTab !== "privacy" && (
+            {activeTab !== "linked" && activeTab !== "notifications" && activeTab !== "privacy" && (
               <motion.div
                 key="mock"
                 initial={{ opacity: 0, y: 10 }}
@@ -734,7 +1040,6 @@ function PrivacySettings() {
                 <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4 border border-indigo-100">
                   {activeTab === "profile" && <User className="w-8 h-8 text-[#605DEC]" />}
                   {activeTab === "security" && <Shield className="w-8 h-8 text-[#605DEC]" />}
-                  {activeTab === "notifications" && <Bell className="w-8 h-8 text-[#605DEC]" />}
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 capitalize">{activeTab} settings</h3>
                 <p className="text-sm text-gray-500 max-w-sm mx-auto mt-2">
@@ -870,112 +1175,6 @@ function PrivacySettings() {
           </div>
         )}
       </AnimatePresence>
-    <form onSubmit={handleSave} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-      <div className="p-6 space-y-8">
-        {/* Profile Visibility */}
-        <section>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Profile Visibility
-          </label>
-          <select
-            value={settings.profileVisibility}
-            onChange={(e) => setSettings({ ...settings, profileVisibility: e.target.value })}
-            className="w-full md:w-1/2 p-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-all"
-          >
-            <option value="public">Public</option>
-            <option value="followers">Followers Only</option>
-            <option value="private">Private</option>
-          </select>
-          <p className="mt-2 text-sm text-gray-500">Public profiles can be seen by anyone on the platform.</p>
-        </section>
-
-        <hr className="border-gray-100" />
-
-        {/* Toggles */}
-        <div className="space-y-6">
-          {[
-            { id: "showEmail", label: "Show email on profile", desc: "Allow users to see your contact email address." },
-            { id: "showEarnings", label: "Display total earnings", desc: "Show your cumulative earnings to build trust." },
-            { id: "discoverable", label: "Search discoverability", desc: "Appear in the search results and artisan directory." }
-          ].map((item) => (
-            <div key={item.id} className="flex items-center justify-between">
-              <div className="flex-grow pr-4">
-                <h3 className="text-sm font-semibold text-gray-800">{item.label}</h3>
-                <p className="text-xs text-gray-500">{item.desc}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleToggle(item.id as keyof typeof settings)}
-                className={`${settings[item.id as keyof typeof settings] ? 'bg-green-500' : 'bg-gray-300'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
-              >
-                <span className={`${settings[item.id as keyof typeof settings] ? 'translate-x-6' : 'translate-x-1'} pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out mt-1`} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-gray-50 px-6 py-4 flex items-center justify-between">
-        {success && <span className="text-green-600 text-sm font-medium animate-pulse">Changes saved successfully!</span>}
-        <button
-          type="submit"
-          disabled={saving}
-          className="ml-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("profile");
-
-  const tabs = [
-    { value: "profile", label: "Profile" },
-    { value: "preferences", label: "Preferences" },
-    { value: "privacy", label: "Privacy" },
-  ];
-
-  return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500">Manage your account settings and preferences.</p>
-      </div>
-
-      <div className="w-full mb-8">
-        <div className="border-b border-[#BDBCDB]">
-          <div className="flex gap-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className={`
-                  pb-3 px-1 text-sm font-medium transition-all relative
-                  ${
-                    activeTab === tab.value
-                      ? "text-[#605DEC]"
-                      : "text-[#6B6878] hover:text-gray-900"
-                  }
-                `}
-              >
-                {tab.label}
-                {activeTab === tab.value && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#605DEC] shadow-[0_2px_4px_rgba(37,99,235,0.4)]" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div>
-        {activeTab === "profile" && <ProfileSettings />}
-        {activeTab === "preferences" && <PreferencesSettings />}
-        {activeTab === "privacy" && <PrivacySettings />}
-      </div>
     </div>
   );
 }
