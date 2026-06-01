@@ -23,7 +23,6 @@ import {
   Eye
 } from "lucide-react";
 
-<<<<<<< frontend/notification-preferences-panel
 // Inline SVGs for social providers to guarantee error-free rendering and custom coloring
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -157,30 +156,6 @@ export default function SettingsPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-=======
-function ProfileSettings() {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm p-8 text-center">
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">Profile Settings</h2>
-      <p className="text-gray-500">Profile settings subsection coming soon.</p>
-    </div>
-  );
-}
-
-function PreferencesSettings() {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm p-8 text-center">
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">Preferences</h2>
-      <p className="text-gray-500">Preferences subsection coming soon.</p>
-    </div>
-  );
-}
-
-function PrivacySettings() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
->>>>>>> main
   
   // Notification Preferences State
   const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
@@ -509,7 +484,6 @@ function PrivacySettings() {
   };
 
   return (
-<<<<<<< frontend/notification-preferences-panel
     <div className="w-full max-w-6xl mx-auto py-4 px-2">
       {/* Toast Alert */}
       <AnimatePresence>
@@ -1023,7 +997,7 @@ function PrivacySettings() {
                             <button
                               type="button"
                               onClick={() => handlePrivacyToggle(item.id as keyof typeof privacySettings)}
-                              className={`${privacySettings[item.id as keyof typeof privacySettings] ? "bg-[#5eb65a]" : "bg-gray-350"} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                              className={`${privacySettings[item.id as keyof typeof privacySettings] ? "bg-[#5eb65a]" : "bg-gray-300"} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
                             >
                               <span className={`${privacySettings[item.id as keyof typeof privacySettings] ? "translate-x-6" : "translate-x-1"} pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out mt-1`} />
                             </button>
@@ -1201,114 +1175,6 @@ function PrivacySettings() {
           </div>
         )}
       </AnimatePresence>
-=======
-    <form onSubmit={handleSave} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-      <div className="p-6 space-y-8">
-        {/* Profile Visibility */}
-        <section>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Profile Visibility
-          </label>
-          <select
-            value={settings.profileVisibility}
-            onChange={(e) => setSettings({ ...settings, profileVisibility: e.target.value })}
-            className="w-full md:w-1/2 p-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-all"
-          >
-            <option value="public">Public</option>
-            <option value="followers">Followers Only</option>
-            <option value="private">Private</option>
-          </select>
-          <p className="mt-2 text-sm text-gray-500">Public profiles can be seen by anyone on the platform.</p>
-        </section>
-
-        <hr className="border-gray-100" />
-
-        {/* Toggles */}
-        <div className="space-y-6">
-          {[
-            { id: "showEmail", label: "Show email on profile", desc: "Allow users to see your contact email address." },
-            { id: "showEarnings", label: "Display total earnings", desc: "Show your cumulative earnings to build trust." },
-            { id: "discoverable", label: "Search discoverability", desc: "Appear in the search results and artisan directory." }
-          ].map((item) => (
-            <div key={item.id} className="flex items-center justify-between">
-              <div className="flex-grow pr-4">
-                <h3 className="text-sm font-semibold text-gray-800">{item.label}</h3>
-                <p className="text-xs text-gray-500">{item.desc}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleToggle(item.id as keyof typeof settings)}
-                className={`${settings[item.id as keyof typeof settings] ? 'bg-green-500' : 'bg-gray-300'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
-              >
-                <span className={`${settings[item.id as keyof typeof settings] ? 'translate-x-6' : 'translate-x-1'} pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out mt-1`} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-gray-50 px-6 py-4 flex items-center justify-between">
-        {success && <span className="text-green-600 text-sm font-medium animate-pulse">Changes saved successfully!</span>}
-        <button
-          type="submit"
-          disabled={saving}
-          className="ml-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("profile");
-
-  const tabs = [
-    { value: "profile", label: "Profile" },
-    { value: "preferences", label: "Preferences" },
-    { value: "privacy", label: "Privacy" },
-  ];
-
-  return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500">Manage your account settings and preferences.</p>
-      </div>
-
-      <div className="w-full mb-8">
-        <div className="border-b border-[#BDBCDB]">
-          <div className="flex gap-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className={`
-                  pb-3 px-1 text-sm font-medium transition-all relative
-                  ${
-                    activeTab === tab.value
-                      ? "text-[#605DEC]"
-                      : "text-[#6B6878] hover:text-gray-900"
-                  }
-                `}
-              >
-                {tab.label}
-                {activeTab === tab.value && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#605DEC] shadow-[0_2px_4px_rgba(37,99,235,0.4)]" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div>
-        {activeTab === "profile" && <ProfileSettings />}
-        {activeTab === "preferences" && <PreferencesSettings />}
-        {activeTab === "privacy" && <PrivacySettings />}
-      </div>
->>>>>>> main
     </div>
   );
 }
